@@ -3,9 +3,10 @@ import time
 import random
 import json
 
-API_URL = "http://localhost:8000/report"
+# 🚨 FIXED: Added /report to the end of the URL
+API_URL = "https://disaster-backend-api-7bvx.onrender.com/report" 
 
-# The new authentic Indian locations database
+# The authentic Indian locations database
 LOCATIONS = [
     # --- NCR Hotspots ---
     "Janakpuri, New Delhi",
@@ -35,7 +36,7 @@ LOCATIONS = [
     "Ambawadi, Ahmedabad",
     "Hazratganj, Lucknow",
     "Civil Lines, Jaipur"
-]
+] # Fixed missing bracket
 
 def generate_disaster():
     disaster_types = ["Earthquake", "Flood"]
@@ -60,10 +61,11 @@ def run_simulator():
     while True:
         payload = generate_disaster()
         try:
-            response = requests.post(API_URL, json=payload)
-            print(f"✅ Sent: {payload['type']} at {payload['location']} | Status: {response.status_code}")
-        except requests.exceptions.ConnectionError:
-            print(f"⏳ Generating data... (Backend offline): {json.dumps(payload)}")
+            # Added a timeout to help with cloud cold-starts
+            response = requests.post(API_URL, json=payload, timeout=10)
+            print(f"✅ Sent: {payload['type']} ({payload['value']}) at {payload['location']} | Status: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"⏳ Connection Error: {e}")
 
         time.sleep(3)
 
