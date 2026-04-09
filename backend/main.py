@@ -13,6 +13,7 @@ app = FastAPI()
 # Database & Telegram Variables
 MONGO_URI = os.getenv("MONGO_URI")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# We are back to a single ID (your public channel name)
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 client = AsyncIOMotorClient(MONGO_URI)
@@ -25,7 +26,7 @@ class DisasterData(BaseModel):
     value: float
     timestamp: str
 
-# The upgraded messenger function
+# The Public Channel messenger function
 async def send_telegram_alert(message: str):
     if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
         print("⚠️ Telegram keys missing. Cannot send alert.")
@@ -37,9 +38,9 @@ async def send_telegram_alert(message: str):
     async with httpx.AsyncClient() as http_client:
         response = await http_client.post(url, json=payload)
         
-        # Check if Telegram accepted the message
+        # Check if Telegram accepted the message to the channel
         if response.status_code == 200:
-            print("📱 Telegram Alert Delivered Successfully!")
+            print(f"📱 Telegram Alert Broadcasted to {TELEGRAM_CHAT_ID} Successfully!")
         else:
             print(f"❌ Telegram Error: {response.status_code} - {response.text}")
 
