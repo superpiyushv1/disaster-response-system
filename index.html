@@ -26,10 +26,10 @@
             width: 100%; 
             position: absolute; 
             z-index: 1; 
-            filter: brightness(0.6) contrast(1.2) saturate(1.2);
+            filter: brightness(0.7) contrast(1.2);
+            background: var(--bg-dark); /* Prevents white flash */
         }
         
-        /* Premium Header */
         #header-lite {
             position: absolute;
             top: 20px;
@@ -43,12 +43,14 @@
             backdrop-filter: blur(15px);
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: fit-content;
+            white-space: nowrap;
         }
 
         h1 {
             font-family: 'Orbitron', sans-serif;
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             letter-spacing: 2px;
             background: linear-gradient(to right, #fff, #94a3b8);
             -webkit-background-clip: text;
@@ -73,12 +75,11 @@
             box-shadow: 0 0 8px #48bb78;
         }
 
-        /* Notification System */
         #ui-overlay {
             position: absolute;
             bottom: 30px;
             right: 30px;
-            width: 320px;
+            width: 300px;
             z-index: 1000;
             display: flex;
             flex-direction: column-reverse; 
@@ -89,7 +90,7 @@
             background: var(--glass);
             backdrop-filter: blur(10px);
             border-left: 4px solid var(--accent-red);
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.4);
             animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -103,11 +104,11 @@
 
         .quake-notif { border-left-color: var(--accent-red); }
         .flood-notif { border-left-color: var(--accent-blue); }
-
-        .notif-title { font-weight: 700; font-size: 11px; color: #94a3b8; margin-bottom: 5px; letter-spacing: 1px;}
-        .notif-loc { font-size: 15px; font-weight: 400; margin-bottom: 8px; color: #fff; }
-        .notif-val { font-family: 'Orbitron', sans-serif; color: var(--accent-blue); font-size: 22px; }
+        .notif-title { font-weight: 700; font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
+        .notif-loc { font-size: 14px; font-weight: 400; color: #fff; }
+        .notif-val { font-family: 'Orbitron', sans-serif; font-size: 20px; margin-top: 5px; }
         .quake-notif .notif-val { color: var(--accent-red); }
+        .flood-notif .notif-val { color: var(--accent-blue); }
 
     </style>
 </head>
@@ -116,7 +117,7 @@
     <div id="header-lite">
         <h1>SMART DISASTER RESPONSE SYSTEM</h1>
         <div class="status-container">
-            <span id="status-dot"></span> <span id="status-text">SYSTEM ONLINE</span>
+            <span id="status-dot"></span> <span id="status-text">RADAR ACTIVE</span>
         </div>
     </div>
 
@@ -125,27 +126,35 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const map = L.map('map', { zoomControl: false }).setView([22.5937, 78.9629], 5);
+        // --- 1. Map Initialization (Locked to India) ---
+        const map = L.map('map', { 
+            zoomControl: false,
+            minZoom: 5,
+            maxZoom: 8,
+            maxBounds: [[5, 65], [40, 100]], // Box around India
+            maxBoundsViscosity: 1.0 
+        }).setView([22.5937, 78.9629], 5);
         
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO'
+            attribution: '&copy; CARTO',
+            noWrap: true // Prevents world repeating
         }).addTo(map);
 
-        // --- INDIA BORDER OUTLINE ---
-        fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries/IND.geo.json')
+        // --- 2. India Border with Neon Glow ---
+        // Using a more reliable GeoJSON source
+        fetch('https://raw.githubusercontent.com/datameet/maps/master/Country/india-composite.json')
             .then(res => res.json())
             .then(data => {
                 L.geoJSON(data, {
                     style: {
                         color: "#00d2ff",
-                        weight: 1.5,
-                        opacity: 0.4,
-                        fillColor: "#00d2ff",
-                        fillOpacity: 0.03,
+                        weight: 2,
+                        opacity: 0.6,
+                        fillColor: "transparent",
                         interactive: false
                     }
                 }).addTo(map);
-            });
+            }).catch(e => console.error("Border load error:", e));
 
         const cityCoords = {
             "Janakpuri, New Delhi": [28.6215, 77.0878],
@@ -153,10 +162,8 @@
             "Cyber City, Gurugram": [28.4951, 77.0894],
             "Bandra West, Mumbai": [19.0596, 72.8295],
             "Whitefield, Bengaluru": [12.9698, 77.7500],
-            "Koramangala, Bengaluru": [12.9352, 77.6245],
             "HITEC City, Hyderabad": [17.4483, 78.3741],
-            "Noida Sector 18, UP": [28.5708, 77.3261],
-            "Salt Lake, Kolkata": [22.5851, 88.4231]
+            "Noida Sector 18, UP": [28.5708, 77.3261]
         };
 
         let processedIds = new Set();
@@ -174,7 +181,7 @@
                 });
             } catch (err) {
                 document.getElementById('status-dot').style.background = 'red';
-                document.getElementById('status-text').innerText = "CONNECTION LOST";
+                document.getElementById('status-text').innerText = "LINK LOST";
             }
         }
 
@@ -183,38 +190,33 @@
             const isQuake = d.type === 'Earthquake';
             const color = isQuake ? '#ff4d4d' : '#00d2ff';
 
-            // MARKER WITH PULSE EFFECT
             const marker = L.circleMarker(coords, {
                 radius: d.value * 4,
                 color: color,
                 fillColor: color,
-                fillOpacity: 0.4,
+                fillOpacity: 0.5,
                 weight: 2
             }).addTo(map);
 
-            // VANISH AFTER 4 SECONDS
             setTimeout(() => { map.removeLayer(marker); }, 4000);
 
-            // NOTIFICATION LOGIC
+            // Notification logic
             const overlay = document.getElementById('ui-overlay');
             const toast = document.createElement('div');
             toast.className = `notification ${isQuake ? 'quake-notif' : 'flood-notif'}`;
-            
             toast.innerHTML = `
-                <div class="notif-title">🚨 ${d.type.toUpperCase()} DETECTED</div>
+                <div class="notif-title">🚨 ${d.type.toUpperCase()}</div>
                 <div class="notif-loc">${d.location}</div>
                 <div class="notif-val">${d.value}</div>
             `;
-            
             overlay.appendChild(toast);
 
-            // REMOVE NOTIFICATION AFTER 10s
             setTimeout(() => {
                 toast.style.transform = "translateX(100%)";
                 toast.style.opacity = "0";
                 toast.style.transition = "0.6s ease-in";
                 setTimeout(() => toast.remove(), 600);
-            }, 10000);
+            }, 8000);
         }
 
         setInterval(updateRadar, 3000);
