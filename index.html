@@ -1,70 +1,132 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>India Disaster Live Radar</title>
+    <title>Smart Disaster Response System</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    
     <style>
-        body { margin: 0; background: #0b0d17; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        #map { height: 100vh; width: 100%; position: absolute; z-index: 1; }
+        :root {
+            --bg-dark: #05070a;
+            --accent-red: #ff4d4d;
+            --accent-blue: #00d2ff;
+            --glass: rgba(15, 20, 30, 0.8);
+        }
+
+        body { 
+            margin: 0; 
+            background: var(--bg-dark); 
+            color: #e2e8f0; 
+            font-family: 'Inter', sans-serif; 
+            overflow: hidden; 
+        }
+
+        #map { 
+            height: 100vh; 
+            width: 100%; 
+            position: absolute; 
+            z-index: 1; 
+            filter: brightness(0.7) contrast(1.2);
+        }
         
-        /* Notification UI */
-        #ui-overlay {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 300px;
-            max-height: 400px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            pointer-events: none; /* Allows clicking the map through the gaps */
-        }
-
-        .notification {
-            background: rgba(26, 32, 44, 0.9);
-            border-left: 5px solid #f56565;
-            padding: 15px;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            animation: slideIn 0.3s ease-out;
-            pointer-events: auto;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        .quake-border { border-left-color: #f56565; }
-        .flood-border { border-left-color: #4299e1; }
-
+        /* Premium Header */
         #header-lite {
             position: absolute;
-            top: 10px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(26, 32, 44, 0.8);
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: 1px solid #4a5568;
-            backdrop-filter: blur(5px);
+            background: var(--glass);
+            padding: 12px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            color: #94a3b8;
+        }
+
+        #status-dot {
+            height: 6px;
+            width: 6px;
+            background: #48bb78;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            box-shadow: 0 0 8px #48bb78;
+        }
+
+        /* Notification System */
+        #ui-overlay {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 320px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column-reverse; /* Newest at bottom, pushes old up */
+            gap: 12px;
+        }
+
+        .notification {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-left: 4px solid var(--accent-red);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(50px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .quake-notif { border-left-color: var(--accent-red); }
+        .flood-notif { border-left-color: var(--accent-blue); }
+
+        .notif-title { font-weight: 700; font-size: 12px; color: #94a3b8; margin-bottom: 5px; }
+        .notif-loc { font-size: 16px; font-weight: 400; margin-bottom: 8px; }
+        .notif-val { font-family: 'Orbitron', sans-serif; color: #fff; font-size: 22px; }
+
     </style>
 </head>
 <body>
+
     <div id="header-lite">
-        <h2 style="margin:0; font-size: 18px;">🛰️ LIVE RADAR: <span id="status">SYNCING...</span></h2>
+        <h1>SMART DISASTER RESPONSE SYSTEM</h1>
+        <div class="status-container">
+            <span id="status-dot"></span> <span id="status-text">SYSTEM ONLINE</span>
+        </div>
     </div>
 
     <div id="map"></div>
-    <div id="ui-overlay" id="notifications"></div>
-
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <div id="ui-overlay"></div> <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const map = L.map('map', { zoomControl: false }).setView([22.5937, 78.9629], 5);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        }).addTo(map);
 
         const cityCoords = {
             "Janakpuri, New Delhi": [28.6215, 77.0878],
@@ -74,62 +136,63 @@
             "HITEC City, Hyderabad": [17.4483, 78.3741]
         };
 
-        // Track IDs we've already seen so we don't spam notifications
         let processedIds = new Set();
 
         async function updateRadar() {
             try {
                 const response = await fetch('https://disaster-backend-api-7bvx.onrender.com/get-disasters');
                 const data = await response.json();
-                document.getElementById('status').innerText = "ACTIVE";
-
+                
+                // Process only new disasters
                 data.forEach(d => {
-                    // Only process if it's new (last 10 seconds)
                     if (!processedIds.has(d._id)) {
                         processedIds.add(d._id);
                         triggerDisaster(d);
                     }
                 });
             } catch (err) {
-                document.getElementById('status').innerText = "OFFLINE";
+                document.getElementById('status-dot').style.background = 'red';
+                document.getElementById('status-text').innerText = "CONNECTION LOST";
             }
         }
 
         function triggerDisaster(d) {
             const coords = cityCoords[d.location] || [22 + (Math.random()*2), 79 + (Math.random()*2)];
-            const color = d.type === 'Earthquake' ? '#f56565' : '#4299e1';
+            const isQuake = d.type === 'Earthquake';
+            const color = isQuake ? '#ff4d4d' : '#00d2ff';
 
-            // 1. CREATE VANISHING MARKER
+            // MARKER LOGIC
             const marker = L.circleMarker(coords, {
-                radius: d.value * 3,
+                radius: d.value * 4,
                 color: color,
                 fillColor: color,
-                fillOpacity: 0.7,
+                fillOpacity: 0.4,
                 weight: 2
             }).addTo(map);
 
-            // Pulse effect simulation: vanish after 3 seconds
-            setTimeout(() => {
-                map.removeLayer(marker);
-            }, 3000);
+            // AUTO-VANISH after 4 seconds
+            setTimeout(() => { map.removeLayer(marker); }, 4000);
 
-            // 2. CREATE NOTIFICATION TOAST
+            // NOTIFICATION LOGIC
             const overlay = document.getElementById('ui-overlay');
             const toast = document.createElement('div');
-            toast.className = `notification ${d.type === 'Earthquake' ? 'quake-border' : 'flood-border'}`;
+            toast.className = `notification ${isQuake ? 'quake-notif' : 'flood-notif'}`;
+            
             toast.innerHTML = `
-                <div style="font-weight:bold; font-size: 14px;">🚨 ${d.type.toUpperCase()} DETECTED</div>
-                <div style="font-size: 12px; color: #cbd5e0;">${d.location}</div>
-                <div style="font-size: 18px; margin-top:5px;">Mag: ${d.value}</div>
+                <div class="notif-title">🚨 ${d.type.toUpperCase()} ALERT</div>
+                <div class="notif-loc">${d.location}</div>
+                <div class="notif-val">${d.value}</div>
             `;
             
-            overlay.prepend(toast); // Put newest at the top
+            overlay.appendChild(toast);
 
-            // Remove notification after 8 seconds
+            // AUTO-REMOVE Notification after 10 seconds
             setTimeout(() => {
-                toast.style.opacity = '0';
+                toast.style.transform = "translateX(100%)";
+                toast.style.opacity = "0";
+                toast.style.transition = "0.5s";
                 setTimeout(() => toast.remove(), 500);
-            }, 8000);
+            }, 10000);
         }
 
         setInterval(updateRadar, 3000);
