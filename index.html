@@ -7,10 +7,11 @@
     
     <style>
         :root {
-            --bg-dark: #05070a;
+            --bg-dark: #0a0c10;
             --accent-red: #ff4d4d;
             --accent-blue: #00d2ff;
-            --glass: rgba(15, 20, 30, 0.8);
+            --accent-orange: #ff9f43;
+            --glass: rgba(10, 15, 25, 0.85);
         }
 
         body { 
@@ -21,13 +22,20 @@
             overflow: hidden; 
         }
 
+        /* The "Google Dark Mode" Container */
+        #map-wrapper {
+            height: 100vh;
+            width: 100%;
+            background: #000;
+            position: absolute;
+            z-index: 1;
+        }
+
         #map { 
-            height: 100vh; 
+            height: 100%; 
             width: 100%; 
-            position: absolute; 
-            z-index: 1; 
-            filter: brightness(0.7) contrast(1.2);
-            background: var(--bg-dark); /* Prevents white flash */
+            /* Magic filter to get high-contrast Land/Water definition */
+            filter: brightness(0.6) invert(1) hue-rotate(180deg) saturate(1.4) contrast(1.1);
         }
         
         #header-lite {
@@ -43,8 +51,6 @@
             backdrop-filter: blur(15px);
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: fit-content;
-            white-space: nowrap;
         }
 
         h1 {
@@ -52,9 +58,7 @@
             margin: 0;
             font-size: 18px;
             letter-spacing: 2px;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #fff;
         }
 
         .status-container {
@@ -75,6 +79,7 @@
             box-shadow: 0 0 8px #48bb78;
         }
 
+        /* Notifications Sidebar */
         #ui-overlay {
             position: absolute;
             bottom: 30px;
@@ -105,7 +110,7 @@
         .quake-notif { border-left-color: var(--accent-red); }
         .flood-notif { border-left-color: var(--accent-blue); }
         .notif-title { font-weight: 700; font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
-        .notif-loc { font-size: 14px; font-weight: 400; color: #fff; }
+        .notif-loc { font-size: 14px; color: #fff; }
         .notif-val { font-family: 'Orbitron', sans-serif; font-size: 20px; margin-top: 5px; }
         .quake-notif .notif-val { color: var(--accent-red); }
         .flood-notif .notif-val { color: var(--accent-blue); }
@@ -121,49 +126,50 @@
         </div>
     </div>
 
-    <div id="map"></div>
+    <div id="map-wrapper">
+        <div id="map"></div>
+    </div>
+    
     <div id="ui-overlay"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // --- 1. Map Initialization (Locked to India) ---
+        // 1. Initialize Map
         const map = L.map('map', { 
             zoomControl: false,
-            minZoom: 5,
-            maxZoom: 8,
-            maxBounds: [[5, 65], [40, 100]], // Box around India
-            maxBoundsViscosity: 1.0 
+            minZoom: 4,
+            maxZoom: 10,
+            wheelDebounceTime: 100
         }).setView([22.5937, 78.9629], 5);
         
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CARTO',
-            noWrap: true // Prevents world repeating
+        // 2. Base Tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap',
+            noWrap: true
         }).addTo(map);
 
-        // --- 2. India Border with Neon Glow ---
-        // Using a more reliable GeoJSON source
+        // 3. Orange India Border (High Contrast)
         fetch('https://raw.githubusercontent.com/datameet/maps/master/Country/india-composite.json')
             .then(res => res.json())
             .then(data => {
                 L.geoJSON(data, {
                     style: {
-                        color: "#00d2ff",
+                        color: "#ff9f43",      // Safety Orange
                         weight: 2,
-                        opacity: 0.6,
+                        opacity: 1,
                         fillColor: "transparent",
                         interactive: false
                     }
                 }).addTo(map);
-            }).catch(e => console.error("Border load error:", e));
+            });
 
         const cityCoords = {
             "Janakpuri, New Delhi": [28.6215, 77.0878],
-            "Connaught Place, New Delhi": [28.6315, 77.2167],
             "Cyber City, Gurugram": [28.4951, 77.0894],
             "Bandra West, Mumbai": [19.0596, 72.8295],
             "Whitefield, Bengaluru": [12.9698, 77.7500],
             "HITEC City, Hyderabad": [17.4483, 78.3741],
-            "Noida Sector 18, UP": [28.5708, 77.3261]
+            "Salt Lake, Kolkata": [22.5851, 88.4231]
         };
 
         let processedIds = new Set();
@@ -194,13 +200,12 @@
                 radius: d.value * 4,
                 color: color,
                 fillColor: color,
-                fillOpacity: 0.5,
+                fillOpacity: 0.6,
                 weight: 2
             }).addTo(map);
 
             setTimeout(() => { map.removeLayer(marker); }, 4000);
 
-            // Notification logic
             const overlay = document.getElementById('ui-overlay');
             const toast = document.createElement('div');
             toast.className = `notification ${isQuake ? 'quake-notif' : 'flood-notif'}`;
