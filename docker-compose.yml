@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  backend-api:
+    build: ./backend        # Tells Docker where the Dockerfile is
+    container_name: disaster-backend
+    network_mode: "host"    # This solves your MongoDB "localhost" issue
+    restart: always         # Restarts automatically if it crashes
