@@ -29,7 +29,7 @@ The system is decoupled into three primary services:
 
 ## 🚀 Quick Start (Local Setup)
 
-### Prerequisites
+Prerequisites
 * Docker & Docker Compose installed.
 * Python 3.x (for the simulator).
 
@@ -38,7 +38,7 @@ docker-compose up -d
 <img width="1919" height="1029" alt="DockerCompose and Simulator_CMD" src="https://github.com/user-attachments/assets/c4dc0bd2-ccad-494d-9466-1aa95e807404" />
 
 2. Start the Data Stream
-# Install dependencies
+Install dependencies
 pip install -r simulator/requirements.txt
 
 3. Run simulator
@@ -50,5 +50,5 @@ https://superpiyushv1.github.io/disaster-response-system/
 <img width="1919" height="932" alt="DisasterMap_Frontend" src="https://github.com/user-attachments/assets/09ff89b3-ee3e-4890-bf3a-14328a0f13c1" />
 
 5. Simultaneous Alerts on Telegram
-6. <img width="1176" height="1029" alt="Telegram_Alerts" src="https://github.com/user-attachments/assets/9447b589-1068-4dbb-b282-767ee22668b1" />
+<img width="1176" height="1029" alt="Telegram_Alerts" src="https://github.com/user-attachments/assets/9447b589-1068-4dbb-b282-767ee22668b1" />
 
