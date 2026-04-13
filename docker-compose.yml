@@ -2,7 +2,21 @@ version: '3.8'
 
 services:
   backend-api:
-    build: ./backend        # Tells Docker where the Dockerfile is
+    build: ./backend
     container_name: disaster-backend
-    network_mode: "host"    # This solves your MongoDB "localhost" issue
-    restart: always         # Restarts automatically if it crashes
+    network_mode: "host"
+    depends_on:
+      - db
+    restart: always
+
+  db:
+    image: mongo:latest
+    container_name: disaster-mongodb
+    ports:
+      - "27017:27017"  # This is the "bridge" for MongoDB Compass
+    volumes:
+      - mongo_data:/data/db
+    restart: always
+
+volumes:
+  mongo_data:          # This ensures your disasters don't disappear if the container stops
